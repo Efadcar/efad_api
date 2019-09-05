@@ -370,6 +370,251 @@ class Global_api_model extends CI_Model {
         }
     }
 	
+	function explore(){	
+		$search_text = $this->input->post('search_text');
+		$book_period = $this->input->post('book_period');
+		$price_period = $this->input->post('price_period');
+		$price_from = $this->input->post('price_from');
+		$price_to = $this->input->post('price_to');
+		$cb_uid = $this->input->post('cb_uid');
+		$cm_uid = $this->input->post('cm_uid');
+		$ct_uid = $this->input->post('ct_uid');
+		$year_from = $this->input->post('year_from');
+		$year_to = $this->input->post('year_to');
+		$color = $this->input->post('color');
+		$car_transmission = $this->input->post('transmission');
+		
+		$order_by = $this->input->post('order_by');
+		
+		$offset_before = $this->input->post('offset');
+		$offset = $offset_before * 15;
+		$num_rows = null;
+		$where = "";
+		if($search_text != null && $search_text != "")
+		{
+			$search_text = str_replace(" ", ", ", $search_text);
+			$db = get_instance()->db->conn_id;
+			$search_text = mysqli_real_escape_string($db, $search_text);
+
+			if($book_period === "0"){
+				$field = "car_daily_price";
+			}else{
+				$field = "car_monthly_price";
+			}
+			
+			if($offset_before == 0){
+				$n = $this->db->query("
+			SELECT * FROM (
+			SELECT car_uid,car_link, cb_uid, cm_uid, car_color, car_model_year, album_uid, ".$field.", car_in_stock, car_status 
+			  FROM cars
+			WHERE car_search_text LIKE '%".$search_text."%' GROUP BY `car_link`, `car_color`
+			) AS car ORDER BY ".$field." ".$order_by." 
+				");
+				$num_rows = $n->num_rows();
+			}
+			$query = "
+			SELECT * FROM (
+			SELECT car_uid,car_link, cb_uid, cm_uid, car_color, car_model_year, album_uid, ".$field.", car_in_stock, car_status 
+			  FROM cars
+			WHERE car_search_text LIKE '%".$search_text."%' GROUP BY `car_link`, `car_color` LIMIT 15 OFFSET ".$offset."
+			) AS car ORDER BY ".$field." ".$order_by." 
+			";
+			//return $query;
+			$q = $this->db->query($query);
+
+			$data['num_rows'] = $num_rows;
+
+			if($q->num_rows() > 0) {
+				foreach($q->result() as $row) {
+					$row->image = base_url().ALBUMS_IMAGES."sm_".$this->getShowMainImageByID($row->album_uid);
+					if($row->car_in_stock == 0){
+						$row->car_status = 2;
+					}
+					$check_if_car_avalible = $this->checkIfCarAvalible($row->car_link);
+					if($check_if_car_avalible){
+						if($row->car_status == 1){
+							$row->cb_uid = $this->getCarBrandNameByID($row->cb_uid);
+							$row->cm_uid = $this->getCarModelNameByID($row->cm_uid);
+							$data['result'][] = $row;
+						}
+					}else{
+						if($row->car_status == 0){
+							$row->cb_uid = $this->getCarBrandNameByID($row->cb_uid);
+							$row->cm_uid = $this->getCarModelNameByID($row->cm_uid);
+							$data['result'][] = $row;
+						}
+					}
+				}
+				$data['status'] = true;
+				$data['message'] = "تم العثور علي نتائج";
+				return $data; 
+			}else{
+				$data['status'] = false;
+				$data['message'] = "لا توجد نتائج للبحث";
+				$data['result'] = [];
+				return $data;	
+			}
+		}
+		else
+		{
+			if($cb_uid == 0){
+				$where .= " ";
+			}else{
+				$where .= " AND cb_uid = ".$cb_uid;
+			}
+			
+			if($cm_uid == 0){
+				$where .= "";
+			}else{
+				$where .= " AND cm_uid = ".$cm_uid;
+			}
+			
+			if($ct_uid == 0){
+				$where .= " ";
+			}else{
+				$where .= " AND ct_uid = ".$ct_uid;
+			}
+			
+			if($color == 0){
+				$where .= " ";
+			}else{
+				$i = 1;
+				$where .= "AND (";
+				foreach($color as $one){
+					if($i ==1){
+						$where .= "car_color = ".$one;
+					}else{
+						$where .= " OR car_color = ".$one;
+					}
+					$i++;
+				}
+				$where .= ")";
+			}
+			//return $car_transmission;
+			if($car_transmission == null){
+				$where .= " ";
+			}else{
+				$where .= " AND car_transmission LIKE '".$car_transmission."'";
+			}
+			
+			if($book_period === "0"){
+				$where .= " AND car_daily_price >= '".$price_from."' AND car_daily_price <= '".$price_to."' ";
+				$field = "car_daily_price";
+			}else{
+				$where .= " AND car_monthly_price >= '".$price_from."' AND car_monthly_price <= '".$price_to."' ";
+				$field = "car_monthly_price";
+			}
+			
+			if($offset_before == 0){
+				$n = $this->db->query("
+				SELECT * FROM (
+				SELECT car_uid,car_link, cb_uid, cm_uid, car_color, car_model_year, album_uid, ".$field.", car_in_stock, car_status 
+				  FROM cars
+				WHERE car_model_year >= ".$year_from." AND car_model_year <= ".$year_to." ".$where." GROUP BY `car_link`, `".$field."`, `car_color`, `car_status`
+				) AS car ORDER BY `car_status` DESC, ".$field." ".$order_by."
+				");
+				$num_rows = $n->num_rows();
+			}
+			$query = "
+			SELECT * FROM (
+			SELECT car_uid,car_link, cb_uid, cm_uid, car_color, car_model_year, album_uid, ".$field.", car_in_stock, car_status 
+			  FROM cars
+			WHERE car_model_year >= ".$year_from." AND car_model_year <= ".$year_to." ".$where." GROUP BY `car_link`, `".$field."`, `car_color`, `car_status`  LIMIT 15 OFFSET ".$offset."
+			) AS car ORDER BY `car_status` DESC, ".$field." ".$order_by."
+			";
+			$q = $this->db->query($query);
+
+			$data['num_rows'] = $num_rows;
+
+			if($q->num_rows() > 0) {
+				foreach($q->result() as $row) {
+					$row->image = base_url().ALBUMS_IMAGES."sm_".$this->getShowMainImageByID($row->album_uid);
+					if($row->car_in_stock == 0){
+						$row->car_status = 2;
+					}
+					$check_if_car_avalible = $this->checkIfCarAvalible($row->car_link);
+					if($check_if_car_avalible){
+						if($row->car_status == 1){
+							$row->cb_uid = $this->getCarBrandNameByID($row->cb_uid);
+							$row->cm_uid = $this->getCarModelNameByID($row->cm_uid);
+							$data['result'][] = $row;
+						}
+					}else{
+						if($row->car_status == 0){
+							$row->cb_uid = $this->getCarBrandNameByID($row->cb_uid);
+							$row->cm_uid = $this->getCarModelNameByID($row->cm_uid);
+							$data['result'][] = $row;
+						}
+					}
+				}
+				$data['status'] = true;
+				$data['message'] = "تم العثور علي نتائج";
+				return $data; 
+			}else{
+				$data['status'] = false;
+				$data['message'] = "لا توجد نتائج للبحث";
+				$data['result'] = [];
+				return $data;	
+			}
+		}
+	}
+	
+	function getShowMainImageByID($album_uid){
+		$this->db->order_by("album_uid","asc");
+		$q =  $this->db->get_where('media', array('album_uid' => $album_uid),1);
+		if($q->num_rows() > 0) {
+			$row = $q->row();
+			return $row->media_path; 
+		}else{
+			return false;	
+		}
+	}
+
+	function getAlbumByID($album_uid){
+		$q =  $this->db->get_where('media', array('album_uid' => $album_uid));
+		if($q->num_rows() > 0) {
+			foreach($q->result() as $row) {
+				$data[] = "md_".$row->media_path; 
+			}
+			return $data; 
+		}else{
+			return false;	
+		}
+	}
+	
+	function checkIfCarAvalible($car_link){
+		$q =  $this->db->get_where('cars', array('car_link' => $car_link, "car_status" => 1),1);
+		if($q->num_rows() > 0) {
+			return true; 
+		}else{
+			return false;	
+		}
+	}
+
+	function getCarBrandNameByID($cb_uid) {
+		$q =  $this->db->get_where('cars_brands', array('cb_uid' => $cb_uid));
+		if($q->num_rows() > 0) {
+			$row = $q->row();
+			return $this->getStringByKeyLanguage($row->cb_name, "arabic");
+		}else{
+			return false;	
+		}
+	}
+		
+	function getCarModelNameByID($cm_uid) {
+		$q =  $this->db->get_where('cars_models', array('cm_uid' => $cm_uid));
+		if($q->num_rows() > 0) {
+			$row = $q->row();
+			return $this->getStringByKeyLanguage($row->cm_name, "arabic");
+		}else{
+			return false;	
+		}
+	}
+		
+
+
+
+
 
 }
 

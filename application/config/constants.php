@@ -85,4 +85,19 @@ defined('EXIT__AUTO_MIN')      OR define('EXIT__AUTO_MIN', 9); // lowest automat
 defined('EXIT__AUTO_MAX')      OR define('EXIT__AUTO_MAX', 125); // highest automatically-assigned error code
 
 define('FLAGS_IMAGES', "../assets/flags/");
+define('PAGES_IMAGES', "../assets/files/pages/");
+define('BLOGS_IMAGES', "../assets/files/blogs/");
+define('ALBUMS_IMAGES', "../assets/files/albums/");
+define('SITE_IMAGES', "../assets/files/site/");
+define('CARS_TYPES_IMAGES', "../assets/files/cars_types/");
+define('CARS_BRANDS_IMAGES', "../assets/files/cars_brands/");
+define('BOOKED_DELIVERY_AFTER', 30);
+define('EARLY_BOOKING_AFTER', 45);
+define('EARLY_BOOKING_DISCOUNT', 5);
+define('CASH_PAYMENT_FEES', 150);
+define('GREEN_MEMBERSHIP_YEARLY_FEES', 69);
+define('RED_MEMBERSHIP_YEARLY_FEES', 349);
+define('BOOKING_CONFIRM_MAIL', "../assets/files/emails/car-mail.html");
+define('MEMBERSHIP_CONFIRM_MAIL', "../assets/files/emails/membership-mail.html");
+
 

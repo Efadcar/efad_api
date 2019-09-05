@@ -276,5 +276,30 @@ class V1 extends REST_Controller {
 			$this->set_response($data, REST_Controller::HTTP_NOT_FOUND); // NOT_FOUND (404) being the HTTP response code
 		}
     }
+	
+    /*
+     * Function to search for cars
+	 * @examp http://efadcar.com/api/v1/explore
+     */
+    public function explore_post(){
+		$this->form_validation->set_rules('order_by', 'order_by', 'required');
+		if ($this->form_validation->run() == FALSE) {
+			$this->set_response([
+				'status' => FALSE,
+				'message' => strip_tags(validation_errors())
+			], 401); // NOT_FOUND (404) being the HTTP response code
+		}else{
+			$data = $this->global_api_model->explore();
+			if ($data['status'] != false)
+			{
+				$this->set_response($data, REST_Controller::HTTP_OK); // OK (200) being the HTTP response code
+			}
+			else
+			{
+				$this->set_response($data, 405); 
+			}
+		}
+    }
+	
 
 }
