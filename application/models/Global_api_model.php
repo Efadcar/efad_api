@@ -457,6 +457,38 @@ class Global_api_model extends CI_Model {
 		}
 		else
 		{
+			switch($price_period){
+				case "day":
+				$price_from = $price_from / 1;
+				break;
+				case "week":
+				$price_from = $price_from / 7;
+				break;
+				case "month":
+				$price_from = $price_from / 30;
+				break;
+				case "year":
+				$price_from = $price_from / 365;
+				break;
+					
+			}
+			
+			switch($price_period){
+				case "day":
+				$price_to = $price_to / 1;
+				break;
+				case "week":
+				$price_to = $price_to / 7;
+				break;
+				case "month":
+				$price_to = $price_to / 30;
+				break;
+				case "year":
+				$price_to = price_to / 365;
+				break;
+					
+			}
+			
 			if($cb_uid == 0){
 				$where .= " ";
 			}else{
