@@ -229,5 +229,52 @@ class V1 extends REST_Controller {
 		}
     }
 
-	
+    /*
+     * Function to get all faq categories with faqs questions on it
+	 * @examp http://efadcar.com/api/v1/faq
+     */
+    public function faq_get(){
+		$data = $this->global_api_model->getAllFaqs();
+		if ($data['status'] != false)
+		{
+			$this->set_response($data, REST_Controller::HTTP_OK); // OK (200) being the HTTP response code
+		}
+		else
+		{
+			$this->set_response($data, REST_Controller::HTTP_NOT_FOUND); // NOT_FOUND (404) being the HTTP response code
+		}
+    }
+
+    /*
+     * Function to get page content by link name
+	 * @examp http://efadcar.com/api/v1/page
+     */
+    public function page_get(){
+		$data = $this->global_api_model->getPageContentByLink($this->get('link'));
+		if ($data['status'] != false)
+		{
+			$this->set_response($data, REST_Controller::HTTP_OK); // OK (200) being the HTTP response code
+		}
+		else
+		{
+			$this->set_response($data, REST_Controller::HTTP_NOT_FOUND); // NOT_FOUND (404) being the HTTP response code
+		}
+    }
+
+    /*
+     * Function to get all memberships categories
+	 * @examp http://efadcar.com/api/v1/memberships
+     */
+    public function memberships_get(){
+		$data = $this->global_api_model->getAllMemberships();
+		if ($data['status'] != false)
+		{
+			$this->set_response($data, REST_Controller::HTTP_OK); // OK (200) being the HTTP response code
+		}
+		else
+		{
+			$this->set_response($data, REST_Controller::HTTP_NOT_FOUND); // NOT_FOUND (404) being the HTTP response code
+		}
+    }
+
 }

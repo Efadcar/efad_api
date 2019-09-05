@@ -2,12 +2,93 @@
 
 class Global_api_model extends CI_Model {
 	
+	function getAllMemberships(){
+		$this->db->select('mc_uid,mc_name,mc_6months_price,mc_9months_price,mc_12months_price');
+		$this->db->order_by("mc_name", "desc");
+		$q = $this->db->get_where('memberships',array("mc_status" => 1));
+		if($q->num_rows() > 0) {
+			foreach($q->result() as $row) {
+				$data['result'][] = $row;
+			}
+			
+			$data['status'] = true;
+			$data['message'] = $this->lang->line('yes_data');
+			return $data; 
+		}else{
+			$data['status'] = false;
+			$data['message'] = $this->lang->line('no_data');
+			$data['result'] = [];
+			return $data;	
+		}
+	}
+		
+	function getPageContentByLink($id){
+		$this->db->select('page_title,page_text,page_meta_desc,page_meta_keywords');
+		$q = $this->db->get_where('pages', array("page_link" => $id));
+		if($q->num_rows() > 0) {
+			foreach($q->result() as $row) {
+				$row->page_title = $this->getStringByKeyLanguage($row->page_title,"arabic");	
+				$row->page_text = $this->getStringByKeyLanguage($row->page_text,"arabic");	
+				$row->page_meta_desc = $this->getStringByKeyLanguage($row->page_meta_desc,"arabic");	
+				$row->page_meta_keywords = $this->getStringByKeyLanguage($row->page_meta_keywords,"arabic");	
+				$data['result'][] = $row;
+			}			
+			$data['status'] = true;
+			$data['message'] = $this->lang->line('yes_data');
+			return $data; 
+		}else{
+			$data['status'] = false;
+			$data['message'] = $this->lang->line('no_data');
+			$data['result'] = [];
+			return $data;	
+		}
+	}
+	
+	function getAllFaqs(){
+		$this->db->select('fc_uid,fc_name');
+		$this->db->order_by("fc_order", "asc");
+		$q = $this->db->get('faq_categories');
+		if($q->num_rows() > 0) {
+			foreach($q->result() as $row) {
+				$row->faqs = $this->getFaqsByCatID($row->fc_uid);
+				$row->fc_name = $this->getStringByKeyLanguage($row->fc_name,"arabic");				
+				$data['result'][] = $row;
+			}
+			
+			$data['status'] = true;
+			$data['message'] = $this->lang->line('yes_data');
+			return $data; 
+		}else{
+			$data['status'] = false;
+			$data['message'] = $this->lang->line('no_data');
+			$data['result'] = [];
+			return $data;	
+		}
+	}
+	
+	function getFaqsByCatID($faq_category_uid){
+		$this->db->select('faq_question,faq_answer');
+		$q = $this->db->get_where('faq', array("faq_category_uid" => $faq_category_uid));
+		if($q->num_rows() > 0) {
+			foreach($q->result() as $row) {
+				$row->faq_question = $this->getStringByKeyLanguage($row->faq_question,"arabic");				
+				$row->faq_answer = $this->getStringByKeyLanguage($row->faq_answer,"arabic");				
+				$data[] = $row;
+			}
+			
+			return $data;
+		}else{
+			return false;	
+		}
+	}
+	
+	
 	function getAllCarsChildColors($id){
 		$this->db->select('cco_uid,cco_name,cco_meta_desc');
 		$q = $this->db->get_where('cars_colors', array("parent_uid" => $id));
 		if($q->num_rows() > 0) {
 			foreach($q->result() as $row) {
-				$row->cco_name = $this->getStringByKeyLanguage($row->cco_name,"arabic");				
+				$row->cco_name = $this->getStringByKeyLanguage($row->cco_name,"arabic");	
 				$data['result'][] = $row;
 			}
 			usort($data['result'], function($first, $second)
