@@ -643,11 +643,90 @@ class Global_api_model extends CI_Model {
 		}
 	}
 		
+	function bookingCost($book_start_date, $book_end_date, $car_uid){
+		
+		// Get booking days
+		$days = $this->dateDifference($book_start_date, $book_end_date);
+		
+		// Get car object
+		$car_obj = $this->getCarByID($car_uid);
 
+		// 1- Get car daily rate depend on booking days
+		switch($days){
+			case ($days < 180):
+				$daily_rate = $car_obj->car_daily_price;
+				break;
+			case ($days >= 180):
+				$daily_rate = $car_obj->car_monthly_price;
+				break;
+		}
+				
+		// Get total fees for booking
+		$total_fees = $daily_rate * $days;
+		
+		//return $total_fees_after_tax;exit;
+		$data['result'] = array(
+			"days" => $days, 
+			"car_uid" => $car_uid, 
+			"book_start_date" => $book_start_date, 
+			"book_end_date" => $book_end_date, 
+			"daily_rate" => $daily_rate, 
+			"total_fees" => $total_fees
+		);
+		$data['status'] = true;
+		$data['message'] = "تم حساب السعر";
+		return $data; 
+	}
 
+	function dateDifference($date_1 , $date_2 , $differenceFormat = '%a' )
+	{
+		$datetime1 = date_create($date_1);
+		$datetime2 = date_create($date_2);
 
+		$interval = date_diff($datetime1, $datetime2);
 
+		return $interval->format($differenceFormat)+1;
 
+	}
+	
+	function getCarByID($car_uid){
+		//"12 june 2019 12:00:00";
+		$this->db->where('car_uid', $car_uid);
+		$q = $this->db->get('cars');
+		if($q->num_rows() > 0) {
+			$row = $q->row();
+			$row->main_image = $this->getShowMainImageByID($row->album_uid);
+			$row->cb_uid = $this->getCarBrandByID($row->cb_uid);
+			$row->cm_uid = $this->getCarModelByID($row->cm_uid);
+			
+			return $row; 
+		}else{
+			return false;	
+		}
+	}
+	
+	function getCarBrandByID($cb_uid){
+		$q =  $this->db->get_where('cars_brands', array('cb_uid' => $cb_uid));
+		if($q->num_rows() > 0) {
+			$row = $q->row();
+			return $row; 
+		}else{
+			return false;	
+		}
+	}
+
+	function getCarModelByID($cm_uid){
+		$q =  $this->db->get_where('cars_models', array('cm_uid' => $cm_uid));
+		if($q->num_rows() > 0) {
+			$row = $q->row();
+			return $row; 
+		}else{
+			return false;	
+		}
+	}
+
+	
+	
 }
 
 ?>

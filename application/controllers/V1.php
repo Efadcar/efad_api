@@ -301,5 +301,31 @@ class V1 extends REST_Controller {
 		}
     }
 	
+    /*
+     * Function to calculate booking price
+	 * @examp http://efadcar.com/api/v1/bookingCost
+     */
+    public function bookingCost_post(){
+		$this->form_validation->set_rules('book_start_date', 'book_start_date', 'required');
+		$this->form_validation->set_rules('book_end_date', 'book_end_date', 'required');
+		$this->form_validation->set_rules('car_uid', 'car_uid', 'required');
+		if ($this->form_validation->run() == FALSE) {
+			$this->set_response([
+				'status' => FALSE,
+				'message' => strip_tags(validation_errors())
+			], 401); // NOT_FOUND (404) being the HTTP response code
+		}else{
+			$data = $this->global_api_model->bookingCost($this->post('book_start_date'), $this->post('book_end_date'), $this->post('car_uid'));
+			if ($data['status'] != false)
+			{
+				$this->set_response($data, REST_Controller::HTTP_OK); // OK (200) being the HTTP response code
+			}
+			else
+			{
+				$this->set_response($data, 405); 
+			}
+		}
+    }
+	
 
 }
