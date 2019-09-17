@@ -7,6 +7,7 @@ require APPPATH . 'libraries/REST_Controller.php';
 class V1 extends REST_Controller {
 	
 	public $token;
+	public $member_obj;
 	
     public function __construct()
     {
@@ -302,6 +303,23 @@ class V1 extends REST_Controller {
     }
 	
     /*
+     * Function to get car information
+	 * @examp http://efadcar.com/api/v1/cars_info
+     */
+    public function cars_info_get(){
+		$data = $this->global_api_model->getCarInfo($this->get('id'));
+		if ($data['status'] != false)
+		{
+			$this->set_response($data, REST_Controller::HTTP_OK); // OK (200) being the HTTP response code
+		}
+		else
+		{
+			$this->set_response($data, REST_Controller::HTTP_NOT_FOUND); // NOT_FOUND (404) being the HTTP response code
+		}
+    }
+
+	
+    /*
      * Function to calculate booking price
 	 * @examp http://efadcar.com/api/v1/bookingCost
      */
@@ -332,12 +350,17 @@ class V1 extends REST_Controller {
 	 * @examp http://efadcar.com/api/v1/bookingConfirm
      */
     public function bookingConfirm_post(){
-		system('arp -an', $return_var);
-		$mac_address = $this->global_api_model->get_string_between($return_var, "at "," on");
-		echo $mac_address;exit;
+		//system('arp -an', $return_var);
+		//$mac_address = $this->global_api_model->get_string_between($return_var, "at "," on");
+		//echo $mac_address;exit;
 		$this->form_validation->set_rules('book_start_date', 'book_start_date', 'required');
 		$this->form_validation->set_rules('book_end_date', 'book_end_date', 'required');
 		$this->form_validation->set_rules('car_uid', 'car_uid', 'required');
+		$this->form_validation->set_rules('delivery_city_uid', 'delivery_city_uid', 'required');
+		$this->form_validation->set_rules('book_total_days', 'book_total_days', 'required');
+		$this->form_validation->set_rules('daily_rate', 'daily_rate', 'required');
+		$this->form_validation->set_rules('tax_total', 'tax_total', 'required');
+		$this->form_validation->set_rules('payment_method', 'payment_method', 'required');
 		if ($this->form_validation->run() == FALSE) {
 			$this->set_response([
 				'status' => FALSE,
@@ -349,6 +372,7 @@ class V1 extends REST_Controller {
 			{
 				$this->set_response($member_uid, 401); 
 			}else{
+				$this->member_obj = $member_uid['result'];
 			
 				$data = $this->global_api_model->bookingConfirm();
 				if ($data['status'] != false)
