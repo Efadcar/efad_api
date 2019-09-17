@@ -288,7 +288,6 @@ class Global_api_model extends CI_Model {
 	
 	public function checkToken($token){
 		//$last_x_days = date('Y-m-d H:i:s', strtotime('now - 7 days'));
-		//echo $last_x_days;
         $this->db->where('token', $token);
         $this->db->where('tkn_device', $this->agent->agent_string());
         $query = $this->db->get('u_token');
@@ -650,6 +649,12 @@ class Global_api_model extends CI_Model {
 		
 		// Get car object
 		$car_obj = $this->getCarByID($car_uid);
+		if($car_obj == false){
+			$data['status'] = false;
+			$data['message'] = $this->lang->line('no_data');
+			$data['result'] = [];
+			return $data;	
+		}
 
 		// 1- Get car daily rate depend on booking days
 		switch($days){
@@ -725,7 +730,125 @@ class Global_api_model extends CI_Model {
 		}
 	}
 
+	function bookingConfirm(){		
+		$data['member_uid'] = $this->token;
+		echo $this->token;exit;
+		$data['car_uid'] = $this->session->userdata('current_booking')['car_uid'];
+		$data['book_start_date'] = date("Y-m-d", strtotime($this->session->userdata('current_booking')['book_start_date']));
+		$data['book_end_date'] = date("Y-m-d", strtotime($this->session->userdata('current_booking')['book_end_date']));
+		$data['delivery_city_uid'] = $this->session->userdata('current_booking')['city_uid'];
+		$data['book_total_days'] = $this->session->userdata('current_booking')['days'];
+
+		$car_obj = $this->getCarByID($data['car_uid']);
+		$car_obj->main_image =	base_url().ALBUMS_IMAGES."sm_".$car_obj->main_image;
+		if($car_obj->car_transmission == "manual"){
+			$car_obj->car_transmission = "يدوي";
+		}else{
+			$car_obj->car_transmission = "أوتوماتيك";
+		}
+		
+		$car_full_name = $this->getCarBrandNameByID($car_obj->cb_uid->cb_uid)." ".$this->getCarModelNameByID($car_obj->cm_uid->cm_uid)." ".$car_obj->car_model_year;
+		// $row->cb_uid = $this->getCarBrandNameByID($row->cb_uid);
+		// $row->cm_uid = $this->getCarModelNameByID($row->cm_uid);
+		
+		// add to booking table
+		$this->db->insert('bookings', $data); 
+		
+		if($this->db->affected_rows() > 0){
+			$book_uid = $this->db->insert_id();
+			$invoice['related_uid'] = $book_uid;
+			$invoice['member_uid'] = $this->session->userdata('member_uid');
+			$invoice['invoice_start_date'] = date("Y-m-d", strtotime($this->session->userdata('current_booking')['book_start_date']));
+			$invoice['invoice_end_date'] = date("Y-m-d", strtotime($this->session->userdata('current_booking')['book_end_date']));
+			$invoice['book_total_days'] = $this->session->userdata('current_booking')['days'];
+			$invoice['daily_rate'] = $this->session->userdata('current_booking')['daily_rate'];
+			$invoice['daily_rate_after_discount'] = $this->session->userdata('current_booking')['daily_rate_after_discount'];
+			$invoice['free_days'] = $this->session->userdata('current_booking')['free_day'];
+			$invoice['is_early_booking'] = $this->session->userdata('current_booking')['early_booking'];
+			$invoice['invoice_total_fees'] = $this->session->userdata('current_booking')['total_fees_after_early_booking'];
+			$invoice['invoice_tax_total'] = $this->session->userdata('current_booking')['tax_total'];
+			$invoice['invoice_total_fees_after_tax'] = $this->session->userdata('current_booking')['total_fees_after_early_booking'] + $this->session->userdata('current_booking')['tax_total'];
+			$invoice['invoice_payment_method'] = $payment_method;
+			if($payment_method == "visa"){
+				$invoice['invoice_status'] = 1;
+			}else{
+				$invoice['invoice_status'] = 0;
+			}
+			$this->db->insert('invoices', $invoice); 
+			if($this->db->affected_rows() > 0){
+				$mail_result = $this->sendBookingConfirmMail($car_obj->main_image, $this->session->userdata('member_full_name'), date("Y-m-d", time()), $book_uid, $car_full_name, $car_obj->car_bags, $car_obj->car_doors, $car_obj->car_transmission, $data['book_total_days'], $data['book_start_date'], $this->getCityByID($data['delivery_city_uid']), $invoice['invoice_total_fees'], $invoice['invoice_tax_total'], $invoice['invoice_total_fees_after_tax']);
+				
+				$data = array(
+					'car_status' => 0
+				);
+
+				$this->db->where('car_uid', $car_obj->car_uid);
+				$this->db->update('cars', $data);
+				
+				
+				$new_member = $this->session->userdata('current_booking')['new_member'];
+				if($new_member == 1){
+										
+					$membership_obj = $this->getMembershipByID(3);
+					$invoice_start_date = date("Y-m-d", time());
+					$invoice_end_date = date('Y-m-d',strtotime(date("Y-m-d", time()) . " + 365 day"));
+					$invoice2['related_uid'] = 3;
+					$invoice2['member_uid'] = $this->session->userdata('member_uid');
+					$invoice2['invoice_start_date'] = $invoice_start_date;
+					$invoice2['invoice_end_date'] = $invoice_end_date;
+					$invoice2['invoice_total_fees'] = RED_MEMBERSHIP_YEARLY_FEES;
+					$invoice2['invoice_tax_total'] = ((RED_MEMBERSHIP_YEARLY_FEES / 100) * 5 );
+					$invoice2['invoice_total_fees_after_tax'] = RED_MEMBERSHIP_YEARLY_FEES + ((RED_MEMBERSHIP_YEARLY_FEES / 100) * 5 );
+					$invoice2['invoice_payment_method'] = $payment_method;
+					$invoice2['is_membership'] = 1;
+					$invoice2['membership_duration'] = 12;
+					if($payment_method == "visa"){
+						$invoice2['invoice_status'] = 1;
+					}else{
+						$invoice2['invoice_status'] = 0;
+					}
+					$this->db->insert('invoices', $invoice2); 
+					if($this->db->affected_rows() > 0){
+						$this->messages->add("لقد تم حجز السيارة بنجاح.", "success");
+						$this->sendMembershipConfirmMail($membership_obj->mc_name, $invoice_start_date, $invoice_end_date, RED_MEMBERSHIP_YEARLY_FEES, ((RED_MEMBERSHIP_YEARLY_FEES / 100) * 5 ), RED_MEMBERSHIP_YEARLY_FEES + ((RED_MEMBERSHIP_YEARLY_FEES / 100) * 5 ), "12 شهر");
+						// update user mc_uid
+						$data = array(
+							'mc_uid' => 3,
+							'member_renewal_date' => $invoice2['invoice_end_date']
+						);
+
+						$this->db->where('member_uid', $invoice2['member_uid']);
+						$this->db->update('members', $data);
+						$_SESSION['mc_uid'] = 3;
+						unset($_SESSION['current_booking']);
+						return ["status" => 1];
+					}else{
+						return ["status" => 0, "message" => "لقد حدث خطأ أثناء الحجز"];
+					}
+				}else{
+					$this->messages->add("لقد تم حجز السيارة بنجاح.", "success");
+					unset($_SESSION['current_booking']);
+					return ["status" => 1];
+				}
+			}else{
+				return ["status" => 0, "message" => "لقد حدث خطأ أثناء الحجز"];
+			}
+		}else{
+			return ["status" => 0, "message" => "لقد حدث خطأ أثناء الحجز"];
+		}
+		// add to invoice table
+		
+		// return true and set message to session msgs
+	}
 	
+	function get_string_between($string, $start, $end){
+		$string = ' ' . $string;
+		$ini = strpos($string, $start);
+		if ($ini == 0) return '';
+		$ini += strlen($start);
+		$len = strpos($string, $end, $ini) - $ini;
+		return substr($string, $ini, $len);
+	}
 	
 }
 

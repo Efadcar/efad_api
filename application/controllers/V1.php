@@ -327,5 +327,41 @@ class V1 extends REST_Controller {
 		}
     }
 	
+    /*
+     * Function to confirm booking, create invoice and send confirmation mail
+	 * @examp http://efadcar.com/api/v1/bookingConfirm
+     */
+    public function bookingConfirm_post(){
+		system('arp -an', $return_var);
+		$mac_address = $this->global_api_model->get_string_between($return_var, "at "," on");
+		echo $mac_address;exit;
+		$this->form_validation->set_rules('book_start_date', 'book_start_date', 'required');
+		$this->form_validation->set_rules('book_end_date', 'book_end_date', 'required');
+		$this->form_validation->set_rules('car_uid', 'car_uid', 'required');
+		if ($this->form_validation->run() == FALSE) {
+			$this->set_response([
+				'status' => FALSE,
+				'message' => strip_tags(validation_errors())
+			], 401); // NOT_FOUND (404) being the HTTP response code
+		}else{
+			$member_uid = $this->global_api_model->checkToken($this->token);
+			if ($member_uid['status'] == false)
+			{
+				$this->set_response($member_uid, 401); 
+			}else{
+			
+				$data = $this->global_api_model->bookingConfirm();
+				if ($data['status'] != false)
+				{
+					$this->set_response($data, REST_Controller::HTTP_OK); // OK (200) being the HTTP response code
+				}
+				else
+				{
+					$this->set_response($data, 405); 
+				}
+			}
+		}
+    }
+	
 
 }
