@@ -578,7 +578,6 @@ class Global_api_model extends CI_Model {
 					if($row->car_in_stock == 0){
 						$row->car_status = 2;
 					}
-					/*
 					$check_if_car_avalible = $this->checkIfCarAvalible($row->car_link);
 					if($check_if_car_avalible){
 						if($row->car_status == 1){
@@ -592,20 +591,6 @@ class Global_api_model extends CI_Model {
 							$row->cm_uid = $this->getCarModelNameByID($row->cm_uid);
 							$data['result'][] = $row;
 						}
-					}
-					*/
-					if($row->car_status == 0){
-						$check_if_car_avalible = $this->checkIfCarAvalible($row->car_link);
-						if($check_if_car_avalible){
-							$row->cb_uid = $this->getCarBrandNameByID($row->cb_uid);
-							$row->cm_uid = $this->getCarModelNameByID($row->cm_uid);
-							$row->car_status = 1;
-							$data['result'][] = $row;
-						}
-					}else{
-						$row->cb_uid = $this->getCarBrandNameByID($row->cb_uid);
-						$row->cm_uid = $this->getCarModelNameByID($row->cm_uid);
-						$data['result'][] = $row;
 					}
 				}
 				$data['status'] = true;
