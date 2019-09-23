@@ -620,7 +620,7 @@ class Global_api_model extends CI_Model {
 		$q =  $this->db->get_where('media', array('album_uid' => $album_uid));
 		if($q->num_rows() > 0) {
 			foreach($q->result() as $row) {
-				$data[] = "md_".$row->media_path; 
+				$data[] = base_url().ALBUMS_IMAGES."md_".$row->media_path; 
 			}
 			return $data; 
 		}else{
@@ -672,11 +672,12 @@ class Global_api_model extends CI_Model {
 		if($q->num_rows() > 0) {
 			foreach($q->result() as $row) {
 				$row->image = base_url().ALBUMS_IMAGES."sm_".$this->getShowMainImageByID($row->album_uid);
+				$row->album = $this->getAlbumByID($row->album_uid);
 				$row->cb_uid = $this->getCarBrandNameByID($row->cb_uid);
 				$row->cm_uid = $this->getCarModelNameByID($row->cm_uid);
 				$row->car_color = $this->getCarColorNameByID($row->car_color);
 				$row->car_color_secondary = $this->getCarColorNameByID($row->car_color_secondary);
-
+				
 				$data['result'] = $row;
 			}
 			$data['status'] = true;
