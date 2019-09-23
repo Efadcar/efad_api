@@ -350,9 +350,6 @@ class V1 extends REST_Controller {
 	 * @examp http://efadcar.com/api/v1/bookingConfirm
      */
     public function bookingConfirm_post(){
-		//system('arp -an', $return_var);
-		//$mac_address = $this->global_api_model->get_string_between($return_var, "at "," on");
-		//echo $mac_address;exit;
 		$this->form_validation->set_rules('book_start_date', 'book_start_date', 'required');
 		$this->form_validation->set_rules('book_end_date', 'book_end_date', 'required');
 		$this->form_validation->set_rules('car_uid', 'car_uid', 'required');
@@ -387,5 +384,128 @@ class V1 extends REST_Controller {
 		}
     }
 	
-
+    /*
+     * Function to confirm membership, create invoice and send confirmation mail
+	 * @examp http://efadcar.com/api/v1/membershipConfirm
+     */
+    public function membershipConfirm_post(){
+		$this->form_validation->set_rules('mc_uid', 'mc_uid', 'required');
+		$this->form_validation->set_rules('payment_method', 'payment_method', 'required');
+		$this->form_validation->set_rules('total', 'total', 'required');
+		$this->form_validation->set_rules('period', 'period', 'required');
+		if ($this->form_validation->run() == FALSE) {
+			$this->set_response([
+				'status' => FALSE,
+				'message' => strip_tags(validation_errors())
+			], 401); // NOT_FOUND (404) being the HTTP response code
+		}else{
+			$member_uid = $this->global_api_model->checkToken($this->token);
+			if ($member_uid['status'] == false)
+			{
+				$this->set_response($member_uid, 401); 
+			}else{
+				$this->member_obj = $member_uid['result'];
+				$data = $this->global_api_model->confirmMembership();
+				if ($data['status'] != false)
+				{
+					$this->set_response($data, REST_Controller::HTTP_OK); // OK (200) being the HTTP response code
+				}
+				else
+				{
+					$this->set_response($data, 405); 
+				}
+			}
+		}
+    }
+	
+    /*
+     * Function to update user profile info
+	 * @examp http://efadcar.com/api/v1/updateProfile
+     */
+    public function updateProfile_post(){
+		$this->form_validation->set_rules('member_fname', 'member_fname', 'required');
+		$this->form_validation->set_rules('member_lname', 'member_lname', 'required');
+		$this->form_validation->set_rules('member_email', 'member_email', 'required');
+		$this->form_validation->set_rules('member_mobile', 'member_mobile', 'required');
+		$this->form_validation->set_rules('country_uid', 'country_uid', 'required');
+		$this->form_validation->set_rules('city_uid', 'city_uid', 'required');
+		if ($this->form_validation->run() == FALSE) {
+			$this->set_response([
+				'status' => FALSE,
+				'message' => strip_tags(validation_errors())
+			], 401); // NOT_FOUND (404) being the HTTP response code
+		}else{
+			$member_uid = $this->global_api_model->checkToken($this->token);
+			if ($member_uid['status'] == false)
+			{
+				$this->set_response($member_uid, 401); 
+			}else{
+				$this->member_obj = $member_uid['result'];
+				$data = $this->global_api_model->updateProfile();
+				if ($data['status'] != false)
+				{
+					$this->set_response($data, REST_Controller::HTTP_OK); // OK (200) being the HTTP response code
+				}
+				else
+				{
+					$this->set_response($data, 405); 
+				}
+			}
+		}
+    }
+	
+    /*
+     * Function to get user bookings
+	 * @examp http://efadcar.com/api/v1/bookings
+     */
+    public function bookings_post(){
+		$member_uid = $this->global_api_model->checkToken($this->token);
+		if ($member_uid['status'] == false)
+		{
+			$this->set_response($member_uid, 401); 
+		}else{
+			$this->member_obj = $member_uid['result'];
+			$data = $this->global_api_model->bookings();
+			if ($data['status'] != false)
+			{
+				$this->set_response($data, REST_Controller::HTTP_OK); // OK (200) being the HTTP response code
+			}
+			else
+			{
+				$this->set_response($data, 405); 
+			}
+		}
+    }
+	
+    /*
+     * Function to get booking details by ID
+	 * @examp http://efadcar.com/api/v1/booking
+     */
+    public function booking_post(){
+		$this->form_validation->set_rules('book_uid', 'book_uid', 'required');
+		if ($this->form_validation->run() == FALSE) {
+			$this->set_response([
+				'status' => FALSE,
+				'message' => strip_tags(validation_errors())
+			], 401); // NOT_FOUND (404) being the HTTP response code
+		}else{
+			$member_uid = $this->global_api_model->checkToken($this->token);
+			if ($member_uid['status'] == false)
+			{
+				$this->set_response($member_uid, 401); 
+			}else{
+				$this->member_obj = $member_uid['result'];
+				$data = $this->global_api_model->booking();
+				if ($data['status'] != false)
+				{
+					$this->set_response($data, REST_Controller::HTTP_OK); // OK (200) being the HTTP response code
+				}
+				else
+				{
+					$this->set_response($data, 405); 
+				}
+			}
+		}
+    }
+	
 }

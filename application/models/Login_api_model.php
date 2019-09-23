@@ -38,7 +38,11 @@ class Login_api_model extends CI_Model {
 			$data['result'] = (object)array(
                 'member_full_name' => $row->member_fname." ".$row->member_lname,
                 'member_uid' => $row->member_uid,
+                'member_fname' => $row->member_fname,
+                'member_lname' => $row->member_lname,
                 'member_mobile' => $row->member_mobile,
+                'country_uid' => $row->country_uid,
+                'city_uid' => $row->city_uid,
                 'member_email' => $row->member_email,
                 'mc_uid' => $row->mc_uid,
                 'member_renewal_date' => $row->member_renewal_date,

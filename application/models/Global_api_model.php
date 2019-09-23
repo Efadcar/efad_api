@@ -430,8 +430,8 @@ class Global_api_model extends CI_Model {
 			SELECT * FROM (
 			SELECT car_uid,car_link, cb_uid, cm_uid, car_color, car_model_year, album_uid, ".$field.", car_in_stock, car_status 
 			  FROM cars
-			WHERE car_search_text LIKE '%".$search_text."%' GROUP BY `car_link`, `car_color` LIMIT 15 OFFSET ".$offset."
-			) AS car ORDER BY ".$field." ".$order_by." 
+			WHERE car_search_text LIKE '%".$search_text."%' GROUP BY `car_link`, `car_color`
+			) AS car ORDER BY ".$field." ".$order_by." LIMIT 15 OFFSET ".$offset." 
 			";
 			//return $query;
 			$q = $this->db->query($query);
@@ -565,8 +565,8 @@ class Global_api_model extends CI_Model {
 			SELECT * FROM (
 			SELECT car_uid,car_link, cb_uid, cm_uid, car_color, car_model_year, album_uid, ".$field.", car_in_stock, car_status 
 			  FROM cars
-			WHERE car_model_year >= ".$year_from." AND car_model_year <= ".$year_to." ".$where." GROUP BY `car_link`, `".$field."`, `car_color`, `car_status`  LIMIT 15 OFFSET ".$offset."
-			) AS car ORDER BY `car_status` DESC, ".$field." ".$order_by."
+			WHERE car_model_year >= ".$year_from." AND car_model_year <= ".$year_to." ".$where." GROUP BY `car_link`, `".$field."`, `car_color`, `car_status`
+			) AS car ORDER BY `car_status` DESC, ".$field." ".$order_by." LIMIT 15 OFFSET ".$offset."
 			";
 			$q = $this->db->query($query);
 
@@ -780,14 +780,21 @@ class Global_api_model extends CI_Model {
 	}
 
 	function bookingConfirm(){		
-		$data['member_uid'] = $this->token;
+		//$data['member_uid'] = $this->token;
+		$data['member_uid'] = $this->member_obj->member_uid;
 		$data['car_uid'] = $this->input->post('car_uid');
 		$data['book_start_date'] = date("Y-m-d", strtotime($this->input->post('book_start_date')));
 		$data['book_end_date'] = date("Y-m-d", strtotime($this->input->post('book_end_date')));
 		$data['delivery_city_uid'] = $this->input->post('delivery_city_uid');
 		$data['book_total_days'] = $this->input->post('book_total_days');
-
 		$car_obj = $this->getCarByID($data['car_uid']);
+		$car_status = $this->checkIfCarAvalible($car_obj->car_link);
+		if(!$car_status){
+			$result['result'] = [];
+			$result['status'] = false;
+			$result['message'] = "عفواً، السيارة غير متاحة للحجز";
+			return $result;	
+		}
 		$car_obj->main_image =	base_url().ALBUMS_IMAGES."sm_".$car_obj->main_image;
 		if($car_obj->car_transmission == "manual"){
 			$car_obj->car_transmission = "يدوي";
@@ -795,17 +802,29 @@ class Global_api_model extends CI_Model {
 			$car_obj->car_transmission = "أوتوماتيك";
 		}
 		
-		$car_full_name = $this->getCarBrandNameByID($car_obj->cb_uid->cb_uid)." ".$this->getCarModelNameByID($car_obj->cm_uid->cm_uid)." ".$car_obj->car_model_year;
+		$car_brand_name = $this->getCarBrandNameByID($car_obj->cb_uid->cb_uid);
+		$car_model_name = $this->getCarModelNameByID($car_obj->cm_uid->cm_uid);
+		
+		$car_full_name = $car_brand_name." ".$car_model_name." ".$car_obj->car_model_year;
 		// $row->cb_uid = $this->getCarBrandNameByID($row->cb_uid);
 		// $row->cm_uid = $this->getCarModelNameByID($row->cm_uid);
+		$car = [
+			"car_brand_name" => $car_brand_name,
+			"car_model_name" => $car_model_name,
+			"car_model_year" => $car_obj->car_model_year,
+			"car_image" => $car_obj->main_image,
+			"car_color" => $this->getCarColorNameByID($car_obj->car_color),
+			"car_color_secondary" => $this->getCarColorNameByID($car_obj->car_color_secondary)
+		];
 		
+		$data['car_obj'] = json_encode($car);
 		// add to booking table
 		$this->db->insert('bookings', $data); 
 		
 		if($this->db->affected_rows() > 0){
 			$book_uid = $this->db->insert_id();
 			$invoice['related_uid'] = $book_uid;
-			$invoice['member_uid'] = $this->token;
+			$invoice['member_uid'] = $data['member_uid'];
 			$invoice['invoice_start_date'] = $data['book_start_date'];
 			$invoice['invoice_end_date'] = $data['book_end_date'];
 			$invoice['book_total_days'] = $this->input->post('book_total_days');
@@ -891,6 +910,206 @@ class Global_api_model extends CI_Model {
             return $row->city_name_ar;
 		}else{
 			return false;	
+		}
+	}
+	
+	function confirmMembership(){
+		$member_uid = $this->member_obj->member_uid;
+		$data['mc_uid'] = $this->input->post('mc_uid');
+		$payment_method = $this->input->post('payment_method');
+		$total = $this->input->post('total');
+		$period = $this->input->post('period');
+		
+		if($this->member_obj->mc_uid < $_POST['mc_uid'] & $_POST['mc_uid'] != 4 || $this->member_obj->mc_uid == 4 & $_POST['mc_uid'] != 4){
+		
+		
+		
+			switch($period){
+				case "mc_6months_price";
+					$data['member_renewal_date'] = date('Y-m-d',strtotime(date("Y-m-d", time()) . " + 180 day"));
+					$membership_duration = 6;
+					$period_value = "6 أشهر";
+					break;
+				case "mc_9months_price";
+					$data['member_renewal_date'] = date('Y-m-d',strtotime(date("Y-m-d", time()) . " + 270 day"));
+					$membership_duration = 9;
+					$period_value = "9 أشهر";
+					break;
+				case "mc_12months_price";
+					$data['member_renewal_date'] = date('Y-m-d',strtotime(date("Y-m-d", time()) . " + 360 day"));
+					$membership_duration = 12;
+					$period_value = "12 شهر";
+					break;
+			}
+			$membership_obj = $this->getMembershipByID($data['mc_uid']);
+
+			$invoice2['related_uid'] = $data['mc_uid'];
+			$invoice2['member_uid'] = $member_uid;
+			$invoice2['invoice_start_date'] = date("Y-m-d", time());
+			$invoice2['invoice_end_date'] = $data['member_renewal_date'];
+			$invoice2['invoice_total_fees'] = $total;
+			$invoice2['invoice_tax_total'] = (($total / 100) * 5 );
+			$invoice2['invoice_total_fees_after_tax'] = $total + (($total / 100) * 5 );
+			$invoice2['invoice_payment_method'] = $payment_method;
+			$invoice2['is_membership'] = 1;
+			$invoice2['membership_duration'] = $membership_duration;
+
+			if($payment_method == "visa"){
+				$invoice2['invoice_status'] = 1;
+			}else{
+				$invoice2['invoice_status'] = 0;
+			}
+			$this->db->insert('invoices', $invoice2); 
+			if($this->db->affected_rows() > 0){
+				//print_r( $membership_obj);
+				$this->sendMembershipConfirmMail($membership_obj->mc_name, date("Y-m-d", time()), $data['member_renewal_date'], $total, $invoice2['invoice_tax_total'], $invoice2['invoice_total_fees_after_tax'], $period_value);
+
+				$this->db->where('member_uid', $member_uid);
+				$this->db->update('members', $data);
+				
+				$result['result'] = [];
+				$result['status'] = true;
+				$result['message'] = "لقد تم الأشتراك بالعضوية بنجاح.";
+				return $result;	
+			}else{
+				$result['result'] = [];
+				$result['status'] = false;
+				$result['message'] = "لقد حدث خطأ أثناء الأشتراك";
+				return $result;	
+			}
+		}else{
+
+			$result['result'] = [];
+			$result['status'] = false;
+			$result['message'] = "عفواً، لا يمكنك تقليل فئة العضوية";
+			return $result;	
+
+			
+		}
+		
+		// return true and set message to session msgs
+	}
+	
+	
+	function sendMembershipConfirmMail($mc_name, $membership_start, $membership_end, $membership_price, $membership_tax, $membership_total, $period_value){
+		$mail_body = file_get_contents(MEMBERSHIP_CONFIRM_MAIL);
+		$mail_body = str_replace("MEMBERSHIP_NAME", $mc_name, $mail_body);
+		$mail_body = str_replace("MEMBERSHIP_START_DATE", $membership_start, $mail_body);
+		$mail_body = str_replace("MEMBERSHIP_END_DATE", $membership_end, $mail_body);
+		$mail_body = str_replace("MEMBERSHIP_PRICE", $membership_price, $mail_body);
+		$mail_body = str_replace("MEMBERSHIP_TAX", $membership_tax, $mail_body);
+		$mail_body = str_replace("MEMBERSHIP_TOTAL", $membership_total, $mail_body);
+		$mail_body = str_replace("DATE", $membership_start, $mail_body);
+		$mail_body = str_replace("USER_NAME", $this->member_obj->member_fname." ".$this->member_obj->member_lname, $mail_body);
+		$mail_body = str_replace("MEMBERSHIP_PERIOD", $period_value, $mail_body);
+		
+		$url = 'http://18.220.20.34/mail_api/v1/send';
+		$data = array('to' => $this->member_obj->member_email, 'subject' => 'تأكيد الاشتراك في العضوية', 'body' => $mail_body);
+
+		// use key 'http' even if you send the request to https://...
+		$options = array(
+			'http' => array(
+				'header'  => "Content-type: application/x-www-form-urlencoded\r\n",
+				'method'  => 'POST',
+				'content' => http_build_query($data)
+			)
+		);
+		$context  = stream_context_create($options);
+		$result = file_get_contents($url, false, $context);	
+		return $result;
+	}
+	
+	function getMembershipByID($mc_uid){
+		$q =  $this->db->get_where('memberships', array('mc_uid' => $mc_uid));
+		if($q->num_rows() > 0) {
+			$row = $q->row();
+			return $row; 
+		}else{
+			return false;	
+		}
+	}
+	
+	function updateProfile(){
+		$member_uid = $this->member_obj->member_uid;
+		$data['member_fname'] = $this->input->post('member_fname');
+		$data['member_lname'] = $this->input->post('member_lname');
+		$data['member_email'] = $this->input->post('member_email');
+		$data['member_mobile'] = $this->input->post('member_mobile');
+		$member_password = $this->input->post('member_password');
+		$data['country_uid'] = $this->input->post('country_uid');
+		$data['city_uid'] = $this->input->post('city_uid');
+		if($member_password !== "" && $member_password !== " ")
+		{
+			$data['member_password'] = md5($this->input->post('member_password'));
+		}
+		
+		$this->db->where('member_uid', $member_uid);
+		$this->db->update('members', $data);
+		if($this->db->affected_rows() > 0){
+			$result['result'] = [];
+			$result['status'] = true;
+			$result['message'] = "لقد تم تعديل البيانات بنجاح.";
+			return $result;	
+		}else{
+			$result['result'] = [];
+			$result['status'] = false;
+			$result['message'] = "لم تقوم بتغيير البيانات";
+			return $result;	
+		}
+	}
+	
+	function bookings(){
+		$member_uid = $this->member_obj->member_uid;
+		$this->db->select('book_uid,car_uid,car_obj,book_start_date,book_end_date,delivery_city_uid,book_total_days,book_status');
+		$this->db->order_by("book_uid", "desc");
+		$q = $this->db->get_where('bookings',array("member_uid" => $member_uid));
+		if($q->num_rows() > 0) {
+			foreach($q->result() as $row) {
+				$row->car_obj = json_decode($row->car_obj);
+				$this->db->select('invoice_total_fees,invoice_tax_total,invoice_total_fees_after_tax');
+				$m = $this->db->get_where('invoices',array("related_uid" => $row->book_uid));
+				if($m->num_rows() > 0) {
+					$mrow = $m->row();
+					$row->inovice = $mrow;
+					$data['result'][] = $row;
+				}
+			}
+			$data['status'] = true;
+			$data['message'] = $this->lang->line('yes_data');
+			return $data;	
+		}else{
+			$data['result'] = [];
+			$data['status'] = false;
+			$data['message'] = $this->lang->line('no_data');
+			return $data;	
+		}
+	}
+	
+	function booking(){
+		$member_uid = $this->member_obj->member_uid;
+		$book_uid = $this->input->post('book_uid');
+		$this->db->select('book_uid,car_uid,car_obj,book_start_date,book_end_date,delivery_city_uid,book_total_days,book_status');
+		$this->db->order_by("book_uid", "desc");
+		$q = $this->db->get_where('bookings',array("member_uid" => $member_uid, "book_uid" => $book_uid));
+		if($q->num_rows() > 0) {
+			foreach($q->result() as $row) {
+				$row->car_obj = json_decode($row->car_obj);
+				$this->db->select('invoice_total_fees,invoice_tax_total,invoice_total_fees_after_tax');
+				$m = $this->db->get_where('invoices',array("related_uid" => $row->book_uid));
+				if($m->num_rows() > 0) {
+					$mrow = $m->row();
+					$row->inovice = $mrow;
+					$data['result'][] = $row;
+				}
+			}
+			$data['status'] = true;
+			$data['message'] = $this->lang->line('yes_data');
+			return $data;	
+		}else{
+			$data['result'] = [];
+			$data['status'] = false;
+			$data['message'] = $this->lang->line('no_data');
+			return $data;	
 		}
 	}
 	
