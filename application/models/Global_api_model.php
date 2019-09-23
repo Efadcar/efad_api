@@ -837,7 +837,7 @@ class Global_api_model extends CI_Model {
 			if($invoice['invoice_payment_method'] == "visa"){
 				$invoice['invoice_status'] = 1;
 			}else{
-				$invoice['invoice_status'] = 0;
+				$invoice['invoice_status'] = 2;
 			}
 			$this->db->insert('invoices', $invoice); 
 			if($this->db->affected_rows() > 0){
@@ -958,7 +958,7 @@ class Global_api_model extends CI_Model {
 			if($payment_method == "visa"){
 				$invoice2['invoice_status'] = 1;
 			}else{
-				$invoice2['invoice_status'] = 0;
+				$invoice2['invoice_status'] = 2;
 			}
 			$this->db->insert('invoices', $invoice2); 
 			if($this->db->affected_rows() > 0){
@@ -1093,15 +1093,14 @@ class Global_api_model extends CI_Model {
 		$this->db->order_by("book_uid", "desc");
 		$q = $this->db->get_where('bookings',array("member_uid" => $member_uid, "book_uid" => $book_uid));
 		if($q->num_rows() > 0) {
-			foreach($q->result() as $row) {
-				$row->car_obj = json_decode($row->car_obj);
-				$this->db->select('invoice_total_fees,invoice_tax_total,invoice_total_fees_after_tax');
-				$m = $this->db->get_where('invoices',array("related_uid" => $row->book_uid));
-				if($m->num_rows() > 0) {
-					$mrow = $m->row();
-					$row->inovice = $mrow;
-					$data['result'][] = $row;
-				}
+			$row = $q->row();
+			$row->car_obj = json_decode($row->car_obj);
+			$this->db->select('invoice_total_fees,invoice_tax_total,invoice_total_fees_after_tax');
+			$m = $this->db->get_where('invoices',array("related_uid" => $row->book_uid));
+			if($m->num_rows() > 0) {
+				$mrow = $m->row();
+				$row->inovice = $mrow;
+				$data['result'][] = $row;
 			}
 			$data['status'] = true;
 			$data['message'] = $this->lang->line('yes_data');
@@ -1110,6 +1109,51 @@ class Global_api_model extends CI_Model {
 			$data['result'] = [];
 			$data['status'] = false;
 			$data['message'] = $this->lang->line('no_data');
+			return $data;	
+		}
+	}
+	
+	function bookingCancel(){
+		$member_uid = $this->member_obj->member_uid;
+		$book_uid = $this->input->post('book_uid');
+		$q = $this->db->get_where('bookings',array("member_uid" => $member_uid, "book_uid" => $book_uid));
+		if($q->num_rows() > 0) {
+			$row = $q->row();
+			
+			$data = array(
+				'book_status' => 3
+			);
+			$this->db->where('member_uid', $member_uid);
+			$this->db->where('book_uid', $book_uid);
+			$this->db->update('bookings', $data);
+
+			if($this->db->affected_rows() > 0){
+				
+				$data = array(
+					'car_status' => 1
+				);
+				$this->db->where('car_uid', $row->car_uid);
+				$this->db->update('cars', $data);
+				
+				$data = array(
+					'invoice_status' => 3
+				);
+				$this->db->where('related_uid', $book_uid);
+				$this->db->update('invoices', $data);
+				
+				$data['status'] = true;
+				$data['message'] = "تم إلغاء الحجز بنجاح";
+				return $data;	
+			}else{
+				$data['result'] = [];
+				$data['status'] = false;
+				$data['message'] = $this->lang->line('no_data');
+				return $data;	
+			}
+		}else{
+			$data['result'] = [];
+			$data['status'] = false;
+			$data['message'] = "الحجز غير موجود";
 			return $data;	
 		}
 	}

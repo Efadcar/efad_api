@@ -508,4 +508,35 @@ class V1 extends REST_Controller {
 		}
     }
 	
+    /*
+     * Function to cancel booking by ID
+	 * @examp http://efadcar.com/api/v1/bookingCancel
+     */
+    public function bookingCancel_post(){
+		$this->form_validation->set_rules('book_uid', 'book_uid', 'required');
+		if ($this->form_validation->run() == FALSE) {
+			$this->set_response([
+				'status' => FALSE,
+				'message' => strip_tags(validation_errors())
+			], 401); // NOT_FOUND (404) being the HTTP response code
+		}else{
+			$member_uid = $this->global_api_model->checkToken($this->token);
+			if ($member_uid['status'] == false)
+			{
+				$this->set_response($member_uid, 401); 
+			}else{
+				$this->member_obj = $member_uid['result'];
+				$data = $this->global_api_model->bookingCancel();
+				if ($data['status'] != false)
+				{
+					$this->set_response($data, REST_Controller::HTTP_OK); // OK (200) being the HTTP response code
+				}
+				else
+				{
+					$this->set_response($data, 405); 
+				}
+			}
+		}
+    }
+	
 }
