@@ -604,7 +604,7 @@ class Global_api_model extends CI_Model {
 						}else{
 							$row->cb_uid = $this->getCarBrandNameByID($row->cb_uid);
 							$row->cm_uid = $this->getCarModelNameByID($row->cm_uid);
-							$row->car_status = 1;
+							$data['result'][] = $row;
 						}
 					}else{
 						$row->cb_uid = $this->getCarBrandNameByID($row->cb_uid);
