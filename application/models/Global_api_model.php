@@ -1237,7 +1237,7 @@ class Global_api_model extends CI_Model {
 			$row = $q->row();
 			$row->car_obj = json_decode($row->car_obj);
 			//$this->db->select_sum('invoice_total_fees_after_tax');
-			$this->db->select('invoice_uid,invoice_total_fees,invoice_tax_total,invoice_total_fees_after_tax,invoice_payment_method');
+			$this->db->select('SUM(invoice_total_fees_after_tax),invoice_uid,invoice_start_date,invoice_end_date,invoice_total_fees,invoice_tax_total,invoice_total_fees_after_tax,invoice_payment_method');
 			$m = $this->db->get_where('invoices',array("related_uid" => $row->book_uid,"member_uid" => $member_uid));
 			if($m->num_rows() > 0) {
 				foreach($m->result() as $mrow) {
