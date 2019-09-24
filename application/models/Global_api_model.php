@@ -892,6 +892,97 @@ class Global_api_model extends CI_Model {
 		
 	}
 	
+	function bookingExtend(){		
+		//$data['member_uid'] = $this->token;
+		$data['member_uid'] = $this->member_obj->member_uid;
+		$book_uid = $this->input->post('book_uid');
+		$data['car_uid'] = $this->input->post('car_uid');
+		$data['book_start_date'] = date("Y-m-d", strtotime($this->input->post('book_start_date')));
+		$data['book_end_date'] = date("Y-m-d", strtotime($this->input->post('book_end_date')));
+		$data['delivery_city_uid'] = $this->input->post('delivery_city_uid');
+		$data['book_total_days'] = $this->input->post('book_total_days');
+		$car_obj = $this->getCarByID($data['car_uid']);
+		$car_status = $this->checkIfCarAvalible($car_obj->car_link);
+		if(!$car_status){
+			$result['result'] = [];
+			$result['status'] = false;
+			$result['message'] = "عفواً، السيارة غير متاحة للحجز";
+			return $result;	
+		}
+		$car_obj->main_image =	base_url().ALBUMS_IMAGES."sm_".$car_obj->main_image;
+		if($car_obj->car_transmission == "manual"){
+			$car_obj->car_transmission = "يدوي";
+		}else{
+			$car_obj->car_transmission = "أوتوماتيك";
+		}
+		
+		$car_brand_name = $this->getCarBrandNameByID($car_obj->cb_uid->cb_uid);
+		$car_model_name = $this->getCarModelNameByID($car_obj->cm_uid->cm_uid);
+		
+		$car_full_name = $car_brand_name." ".$car_model_name." ".$car_obj->car_model_year;
+		// $row->cb_uid = $this->getCarBrandNameByID($row->cb_uid);
+		// $row->cm_uid = $this->getCarModelNameByID($row->cm_uid);
+		$car = [
+			"car_brand_name" => $car_brand_name,
+			"car_model_name" => $car_model_name,
+			"car_model_year" => $car_obj->car_model_year,
+			"car_image" => $car_obj->main_image,
+			"car_color" => $this->getCarColorNameByID($car_obj->car_color),
+			"car_color_secondary" => $this->getCarColorNameByID($car_obj->car_color_secondary)
+		];
+		
+		$data['car_obj'] = json_encode($car);
+		// add to booking table
+		$this->db->insert('bookings', $data); 
+		
+		if($this->db->affected_rows() > 0){
+			$book_uid = $this->db->insert_id();
+			$invoice['related_uid'] = $book_uid;
+			$invoice['member_uid'] = $data['member_uid'];
+			$invoice['invoice_start_date'] = $data['book_start_date'];
+			$invoice['invoice_end_date'] = $data['book_end_date'];
+			$invoice['book_total_days'] = $this->input->post('book_total_days');
+			$invoice['daily_rate'] = $this->input->post('daily_rate');
+			$invoice['invoice_total_fees'] = $this->input->post('daily_rate') * $data['book_total_days'];
+			$invoice['invoice_tax_total'] = ($invoice['invoice_total_fees'] * (5 / 100));
+			$invoice['invoice_total_fees_after_tax'] = $invoice['invoice_total_fees'] + $invoice['invoice_tax_total'];
+			$invoice['invoice_payment_method'] = $this->input->post('payment_method');
+			if($invoice['invoice_payment_method'] == "visa"){
+				$invoice['invoice_status'] = 1;
+			}else{
+				$invoice['invoice_status'] = 2;
+			}
+			$this->db->insert('invoices', $invoice); 
+			if($this->db->affected_rows() > 0){
+				$mail_result = $this->sendBookingConfirmMail($car_obj->main_image, $this->member_obj->member_fname." ".$this->member_obj->member_lname, date("Y-m-d", time()), $book_uid, $car_full_name, $car_obj->car_bags, $car_obj->car_doors, $car_obj->car_transmission, $data['book_total_days'], $data['book_start_date'], $this->getCityByID($data['delivery_city_uid']), $invoice['invoice_total_fees'], $invoice['invoice_tax_total'], $invoice['invoice_total_fees_after_tax']);
+				
+				$data = array(
+					'car_status' => 0
+				);
+
+				$this->db->where('car_uid', $car_obj->car_uid);
+				$this->db->update('cars', $data);
+				
+				$result['result'] = [];
+				$result['status'] = true;
+				$result['message'] = "لقد تم حجز السيارة بنجاح.";
+				return $result;	
+			}else{
+				$result['result'] = [];
+				$result['status'] = false;
+				$result['message'] = "لقد حدث خطأ أثناء الحجز";
+				return $result;	
+			}
+		}else{
+			$result['result'] = [];
+			$result['status'] = false;
+			$result['message'] = "لقد حدث خطأ أثناء الحجز";
+			return $result;	
+		}
+		// add to invoice table
+		
+	}
+	
 	function sendBookingConfirmMail($car_image, $user_name, $date, $book_number, $car_brand_model_year, $bag, $door, $transmission, $book_days, $book_start, $book_city, $book_price, $book_tax, $book_total){
 		$mail_body = file_get_contents(BOOKING_CONFIRM_MAIL);
 		$mail_body = str_replace("CAR_IMAGE", $car_image, $mail_body);
@@ -1089,7 +1180,8 @@ class Global_api_model extends CI_Model {
 		if($q->num_rows() > 0) {
 			foreach($q->result() as $row) {
 				$row->car_obj = json_decode($row->car_obj);
-				$this->db->select('invoice_total_fees,invoice_tax_total,invoice_total_fees_after_tax');
+				//$this->db->select('invoice_total_fees,invoice_tax_total,invoice_total_fees_after_tax');
+				$this->db->select_sum('invoice_total_fees_after_tax');
 				$m = $this->db->get_where('invoices',array("related_uid" => $row->book_uid,"member_uid" => $member_uid));
 				if($m->num_rows() > 0) {
 					$mrow = $m->row();

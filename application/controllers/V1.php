@@ -563,5 +563,45 @@ class V1 extends REST_Controller {
     }
 	
 	
+    /*
+     * Function to extend booking, edit invoice and send confirmation mail
+	 * @examp http://efadcar.com/api/v1/bookingExtend
+     */
+    public function bookingExtend_post(){
+		$this->form_validation->set_rules('book_uid', 'book_uid', 'required');
+		$this->form_validation->set_rules('book_start_date', 'book_start_date', 'required');
+		$this->form_validation->set_rules('book_end_date', 'book_end_date', 'required');
+		$this->form_validation->set_rules('car_uid', 'car_uid', 'required');
+		$this->form_validation->set_rules('delivery_city_uid', 'delivery_city_uid', 'required');
+		$this->form_validation->set_rules('book_total_days', 'book_total_days', 'required');
+		$this->form_validation->set_rules('daily_rate', 'daily_rate', 'required');
+		$this->form_validation->set_rules('tax_total', 'tax_total', 'required');
+		$this->form_validation->set_rules('payment_method', 'payment_method', 'required');
+		if ($this->form_validation->run() == FALSE) {
+			$this->set_response([
+				'status' => FALSE,
+				'message' => strip_tags(validation_errors())
+			], 401); // NOT_FOUND (404) being the HTTP response code
+		}else{
+			$member_uid = $this->global_api_model->checkToken($this->token);
+			if ($member_uid['status'] == false)
+			{
+				$this->set_response($member_uid, 401); 
+			}else{
+				$this->member_obj = $member_uid['result'];
+			
+				$data = $this->global_api_model->bookingExtend();
+				if ($data['status'] != false)
+				{
+					$this->set_response($data, REST_Controller::HTTP_OK); // OK (200) being the HTTP response code
+				}
+				else
+				{
+					$this->set_response($data, 405); 
+				}
+			}
+		}
+    }
+	
 	
 }
