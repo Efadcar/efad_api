@@ -1108,6 +1108,33 @@ class Global_api_model extends CI_Model {
 		}
 	}
 	
+	function quickPayment(){
+		$member_uid = $this->member_obj->member_uid;
+		$this->db->select('book_uid,car_uid,car_obj,book_start_date,book_end_date,delivery_city_uid,book_total_days,book_status');
+		$this->db->order_by("book_uid", "desc");
+		$q = $this->db->get_where('bookings',array("member_uid" => $member_uid,"book_start_date <" => date("Y-m-d", time()),"book_end_date >=" => date("Y-m-d", time())));
+		if($q->num_rows() > 0) {
+			foreach($q->result() as $row) {
+				$row->car_obj = json_decode($row->car_obj);
+				$this->db->select('invoice_total_fees,invoice_tax_total,invoice_total_fees_after_tax');
+				$m = $this->db->get_where('invoices',array("related_uid" => $row->book_uid,"member_uid" => $member_uid));
+				if($m->num_rows() > 0) {
+					$mrow = $m->row();
+					$row->inovice = $mrow;
+					$data['result'][] = $row;
+				}
+			}
+			$data['status'] = true;
+			$data['message'] = $this->lang->line('yes_data');
+			return $data;	
+		}else{
+			$data['result'] = [];
+			$data['status'] = false;
+			$data['message'] = $this->lang->line('no_data');
+			return $data;	
+		}
+	}
+	
 	function booking(){
 		$member_uid = $this->member_obj->member_uid;
 		$book_uid = $this->input->post('book_uid');

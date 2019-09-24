@@ -539,4 +539,29 @@ class V1 extends REST_Controller {
 		}
     }
 	
+    /*
+     * Function to get quick payment
+	 * @examp http://efadcar.com/api/v1/quickPayment
+     */
+    public function quickPayment_post(){
+		$member_uid = $this->global_api_model->checkToken($this->token);
+		if ($member_uid['status'] == false)
+		{
+			$this->set_response($member_uid, 401); 
+		}else{
+			$this->member_obj = $member_uid['result'];
+			$data = $this->global_api_model->quickPayment();
+			if ($data['status'] != false)
+			{
+				$this->set_response($data, REST_Controller::HTTP_OK); // OK (200) being the HTTP response code
+			}
+			else
+			{
+				$this->set_response($data, 405); 
+			}
+		}
+    }
+	
+	
+	
 }
