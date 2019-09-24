@@ -1243,8 +1243,9 @@ class Global_api_model extends CI_Model {
 				foreach($m->result() as $mrow) {
 					$row->inovice[] = $mrow;
 				}
+				$data['result'][] = $row;
 			}
-			$data['result'][] = $row;
+			
 			$data['status'] = true;
 			$data['message'] = $this->lang->line('yes_data');
 			return $data;	
