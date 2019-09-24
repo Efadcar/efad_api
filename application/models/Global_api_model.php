@@ -1090,7 +1090,7 @@ class Global_api_model extends CI_Model {
 			foreach($q->result() as $row) {
 				$row->car_obj = json_decode($row->car_obj);
 				$this->db->select('invoice_total_fees,invoice_tax_total,invoice_total_fees_after_tax');
-				$m = $this->db->get_where('invoices',array("related_uid" => $row->book_uid));
+				$m = $this->db->get_where('invoices',array("related_uid" => $row->book_uid,"member_uid" => $member_uid));
 				if($m->num_rows() > 0) {
 					$mrow = $m->row();
 					$row->inovice = $mrow;
