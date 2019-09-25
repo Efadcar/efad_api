@@ -572,10 +572,8 @@ class V1 extends REST_Controller {
 		$this->form_validation->set_rules('book_start_date', 'book_start_date', 'required');
 		$this->form_validation->set_rules('book_end_date', 'book_end_date', 'required');
 		$this->form_validation->set_rules('car_uid', 'car_uid', 'required');
-		$this->form_validation->set_rules('delivery_city_uid', 'delivery_city_uid', 'required');
 		$this->form_validation->set_rules('book_total_days', 'book_total_days', 'required');
 		$this->form_validation->set_rules('daily_rate', 'daily_rate', 'required');
-		$this->form_validation->set_rules('tax_total', 'tax_total', 'required');
 		$this->form_validation->set_rules('payment_method', 'payment_method', 'required');
 		if ($this->form_validation->run() == FALSE) {
 			$this->set_response([
