@@ -782,6 +782,18 @@ class Global_api_model extends CI_Model {
 		}
 	}
 	
+	function getBookingByID($book_uid){
+		//"12 june 2019 12:00:00";
+		$this->db->where('book_uid', $book_uid);
+		$q = $this->db->get('bookings');
+		if($q->num_rows() > 0) {
+			$row = $q->row();
+			return $row; 
+		}else{
+			return false;	
+		}
+	}
+	
 	function getCarBrandByID($cb_uid){
 		$q =  $this->db->get_where('cars_brands', array('cb_uid' => $cb_uid));
 		if($q->num_rows() > 0) {
@@ -893,57 +905,34 @@ class Global_api_model extends CI_Model {
 	}
 	
 	function bookingExtend(){		
-		//$data['member_uid'] = $this->token;
 		$data['member_uid'] = $this->member_obj->member_uid;
 		$book_uid = $this->input->post('book_uid');
-		$data['car_uid'] = $this->input->post('car_uid');
-		$data['book_start_date'] = date("Y-m-d", strtotime($this->input->post('book_start_date')));
+		$book_obj = $this->getBookingByID($book_uid);
 		$data['book_end_date'] = date("Y-m-d", strtotime($this->input->post('book_end_date')));
-		$data['delivery_city_uid'] = $this->input->post('delivery_city_uid');
-		$data['book_total_days'] = $this->input->post('book_total_days');
-		$car_obj = $this->getCarByID($data['car_uid']);
-		$car_status = $this->checkIfCarAvalible($car_obj->car_link);
-		if(!$car_status){
-			$result['result'] = [];
-			$result['status'] = false;
-			$result['message'] = "عفواً، السيارة غير متاحة للحجز";
-			return $result;	
-		}
+		$data['book_total_days'] = $this->input->post('book_total_days') + $book_obj->book_total_days;
+		$car_uid = $this->input->post('car_uid');
+		$car_obj = $this->getCarByID($car_uid);
 		$car_obj->main_image =	base_url().ALBUMS_IMAGES."sm_".$car_obj->main_image;
 		if($car_obj->car_transmission == "manual"){
 			$car_obj->car_transmission = "يدوي";
 		}else{
 			$car_obj->car_transmission = "أوتوماتيك";
 		}
-		
 		$car_brand_name = $this->getCarBrandNameByID($car_obj->cb_uid->cb_uid);
 		$car_model_name = $this->getCarModelNameByID($car_obj->cm_uid->cm_uid);
-		
 		$car_full_name = $car_brand_name." ".$car_model_name." ".$car_obj->car_model_year;
-		// $row->cb_uid = $this->getCarBrandNameByID($row->cb_uid);
-		// $row->cm_uid = $this->getCarModelNameByID($row->cm_uid);
-		$car = [
-			"car_brand_name" => $car_brand_name,
-			"car_model_name" => $car_model_name,
-			"car_model_year" => $car_obj->car_model_year,
-			"car_image" => $car_obj->main_image,
-			"car_color" => $this->getCarColorNameByID($car_obj->car_color),
-			"car_color_secondary" => $this->getCarColorNameByID($car_obj->car_color_secondary)
-		];
-		
-		$data['car_obj'] = json_encode($car);
-		// add to booking table
-		$this->db->insert('bookings', $data); 
+
+		$this->db->where('book_uid', $book_uid);
+		$this->db->update('bookings', $data);
 		
 		if($this->db->affected_rows() > 0){
-			$book_uid = $this->db->insert_id();
 			$invoice['related_uid'] = $book_uid;
 			$invoice['member_uid'] = $data['member_uid'];
-			$invoice['invoice_start_date'] = $data['book_start_date'];
+			$invoice['invoice_start_date'] = date("Y-m-d", strtotime($this->input->post('book_start_date')));
 			$invoice['invoice_end_date'] = $data['book_end_date'];
 			$invoice['book_total_days'] = $this->input->post('book_total_days');
 			$invoice['daily_rate'] = $this->input->post('daily_rate');
-			$invoice['invoice_total_fees'] = $this->input->post('daily_rate') * $data['book_total_days'];
+			$invoice['invoice_total_fees'] = $this->input->post('daily_rate') * $this->input->post('book_total_days');
 			$invoice['invoice_tax_total'] = ($invoice['invoice_total_fees'] * (5 / 100));
 			$invoice['invoice_total_fees_after_tax'] = $invoice['invoice_total_fees'] + $invoice['invoice_tax_total'];
 			$invoice['invoice_payment_method'] = $this->input->post('payment_method');
@@ -954,18 +943,11 @@ class Global_api_model extends CI_Model {
 			}
 			$this->db->insert('invoices', $invoice); 
 			if($this->db->affected_rows() > 0){
-				$mail_result = $this->sendBookingConfirmMail($car_obj->main_image, $this->member_obj->member_fname." ".$this->member_obj->member_lname, date("Y-m-d", time()), $book_uid, $car_full_name, $car_obj->car_bags, $car_obj->car_doors, $car_obj->car_transmission, $data['book_total_days'], $data['book_start_date'], $this->getCityByID($data['delivery_city_uid']), $invoice['invoice_total_fees'], $invoice['invoice_tax_total'], $invoice['invoice_total_fees_after_tax']);
-				
-				$data = array(
-					'car_status' => 0
-				);
-
-				$this->db->where('car_uid', $car_obj->car_uid);
-				$this->db->update('cars', $data);
-				
+				$mail_result = $this->sendBookingConfirmMail($car_obj->main_image, $this->member_obj->member_fname." ".$this->member_obj->member_lname, date("Y-m-d", time()), $book_uid, $car_full_name, $car_obj->car_bags, $car_obj->car_doors, $car_obj->car_transmission, $invoice['book_total_days'], $invoice['invoice_start_date'], $this->getCityByID($book_obj->delivery_city_uid), $invoice['invoice_total_fees'], $invoice['invoice_tax_total'], $invoice['invoice_total_fees_after_tax']);
+								
 				$result['result'] = [];
 				$result['status'] = true;
-				$result['message'] = "لقد تم حجز السيارة بنجاح.";
+				$result['message'] = "لقد تم تمديد حجز السيارة بنجاح.";
 				return $result;	
 			}else{
 				$result['result'] = [];
