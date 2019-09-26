@@ -642,7 +642,7 @@ class Global_api_model extends CI_Model {
 		$q =  $this->db->get_where('media', array('album_uid' => $album_uid));
 		if($q->num_rows() > 0) {
 			foreach($q->result() as $row) {
-				$data[] = base_url().ALBUMS_IMAGES."sm_".$row->media_path; 
+				$data[] = base_url().ALBUMS_IMAGES."md_".$row->media_path; 
 			}
 			return $data; 
 		}else{
