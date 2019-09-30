@@ -632,6 +632,9 @@ class Global_api_model extends CI_Model {
 		$q =  $this->db->get_where('media', array('album_uid' => $album_uid),1);
 		if($q->num_rows() > 0) {
 			$row = $q->row();
+			if (!@getimagesize(ase_url().ALBUMS_IMAGES."sm_".$row->media_path)) {
+				$row->media_path = "default.png"; 
+			}			
 			return $row->media_path; 
 		}else{
 			return false;	
