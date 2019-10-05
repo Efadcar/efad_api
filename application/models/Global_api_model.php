@@ -1189,7 +1189,7 @@ class Global_api_model extends CI_Model {
 		$member_uid = $this->member_obj->member_uid;
 		$this->db->select('book_uid,car_uid,car_obj,book_start_date,book_end_date,delivery_city_uid,book_total_days,book_status');
 		$this->db->order_by("book_uid", "desc");
-		$q = $this->db->get_where('bookings',array("member_uid" => $member_uid,"book_start_date <" => date("Y-m-d", time()),"book_end_date >=" => date("Y-m-d", time())));
+		$q = $this->db->get_where('bookings',array("member_uid" => $member_uid));
 		if($q->num_rows() > 0) {
 			foreach($q->result() as $row) {
 				$row->car_obj = json_decode($row->car_obj);
