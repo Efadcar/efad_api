@@ -59,8 +59,10 @@ class Login_api_model extends CI_Model {
     }
 	
 	function register(){
+		$member_title = $this->input->post('member_title');
 		$member_fname = $this->input->post('member_fname');
 		$member_lname = $this->input->post('member_lname');
+		$member_dob = $this->input->post('member_dob');
 		$member_email = $this->input->post('member_email');
 		$country_uid = $this->input->post('country_uid');
 		$country_code = $this->getCountryCodeByID($country_uid);
@@ -72,13 +74,21 @@ class Login_api_model extends CI_Model {
 		$member_password = md5($member_password_not_hashed);
 		
 		$city_uid = $this->input->post('city_uid');
+		$member_id_type = $this->input->post('member_id_type');
+		$member_id_expire = $this->input->post('member_id_expire');
+		$member_license_expire = $this->input->post('member_license_expire');
 
 		$data = array(
+		   'member_title' => $member_title ,
 		   'member_fname' => $member_fname ,
 		   'member_lname' => $member_lname ,
+		   'member_dob' => $member_dob ,
 		   'member_email' => $member_email ,
 		   'member_mobile' => $member_mobile ,
 		   'member_password' => $member_password ,
+		   'member_id_type' => $member_id_type ,
+		   'member_id_expire' => $member_id_expire ,
+		   'member_license_expire' => $member_license_expire ,
 		   'country_uid' => $country_uid ,
 		   'city_uid' => $city_uid 
 		);

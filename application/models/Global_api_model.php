@@ -410,10 +410,22 @@ class Global_api_model extends CI_Model {
 			$db = get_instance()->db->conn_id;
 			$search_text = mysqli_real_escape_string($db, $search_text);
 
-			if($book_period === "0"){
-				$field = "car_daily_price";
-			}else{
-				$field = "car_monthly_price";
+			switch($price_period){
+				case "day":
+					$price_to = $price_to / 1;
+					$where .= " AND car_daily_price >= '".$price_from."' AND car_daily_price <= '".$price_to."' ";
+					$field = "car_daily_price";
+					break;
+				case "week":
+					$price_to = $price_to / 7;
+					$where .= " AND car_weekly_price >= '".$price_from."' AND car_weekly_price <= '".$price_to."' ";
+					$field = "car_weekly_price";
+					break;
+				case "month":
+					$price_to = $price_to / 30;
+					$where .= " AND car_monthly_price >= '".$price_from."' AND car_monthly_price <= '".$price_to."' ";
+					$field = "car_monthly_price";
+					break;					
 			}
 			
 			if($offset_before == 0){
@@ -476,34 +488,20 @@ class Global_api_model extends CI_Model {
 		{
 			switch($price_period){
 				case "day":
-				$price_from = $price_from / 1;
-				break;
+					$price_to = $price_to / 1;
+					$where .= " AND car_daily_price >= '".$price_from."' AND car_daily_price <= '".$price_to."' ";
+					$field = "car_daily_price";
+					break;
 				case "week":
-				$price_from = $price_from / 7;
-				break;
+					$price_to = $price_to / 7;
+					$where .= " AND car_weekly_price >= '".$price_from."' AND car_weekly_price <= '".$price_to."' ";
+					$field = "car_weekly_price";
+					break;
 				case "month":
-				$price_from = $price_from / 30;
-				break;
-				case "year":
-				$price_from = $price_from / 365;
-				break;
-					
-			}
-			
-			switch($price_period){
-				case "day":
-				$price_to = $price_to / 1;
-				break;
-				case "week":
-				$price_to = $price_to / 7;
-				break;
-				case "month":
-				$price_to = $price_to / 30;
-				break;
-				case "year":
-				$price_to = price_to / 365;
-				break;
-					
+					$price_to = $price_to / 30;
+					$where .= " AND car_monthly_price >= '".$price_from."' AND car_monthly_price <= '".$price_to."' ";
+					$field = "car_monthly_price";
+					break;					
 			}
 			
 			if($cb_uid == 0){
@@ -545,15 +543,7 @@ class Global_api_model extends CI_Model {
 			}else{
 				$where .= " AND car_transmission LIKE '".$car_transmission."'";
 			}
-			
-			if($book_period === "0"){
-				$where .= " AND car_daily_price >= '".$price_from."' AND car_daily_price <= '".$price_to."' ";
-				$field = "car_daily_price";
-			}else{
-				$where .= " AND car_monthly_price >= '".$price_from."' AND car_monthly_price <= '".$price_to."' ";
-				$field = "car_monthly_price";
-			}
-			
+						
 			if($offset_before == 0){
 				$n = $this->db->query("
 				SELECT * FROM (
@@ -1130,14 +1120,19 @@ class Global_api_model extends CI_Model {
 	
 	function updateProfile(){
 		$member_uid = $this->member_obj->member_uid;
+		$data['member_title'] = $this->input->post('member_title');
 		$data['member_fname'] = $this->input->post('member_fname');
 		$data['member_lname'] = $this->input->post('member_lname');
+		$data['member_dob'] = $this->input->post('member_dob');
 		$data['member_email'] = $this->input->post('member_email');
 		$data['member_mobile'] = $this->input->post('member_mobile');
 		$member_password = $this->input->post('member_password');
 		$data['country_uid'] = $this->input->post('country_uid');
 		$data['city_uid'] = $this->input->post('city_uid');
-		if($member_password !== "" && $member_password !== " ")
+		$data['member_id_type'] = $this->input->post('member_id_type');
+		$data['member_id_expire'] = $this->input->post('member_id_expire');
+		$data['member_license_expire'] = $this->input->post('member_license_expire');
+		if($member_password !== "" && $member_password !== " " && strlen($member_password) > 10)
 		{
 			$data['member_password'] = md5($this->input->post('member_password'));
 		}

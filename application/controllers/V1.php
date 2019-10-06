@@ -55,12 +55,17 @@ class V1 extends REST_Controller {
 	 * @examp http://efadcar.com/api/v1/register
      */
     public function register_post(){
+        $this->form_validation->set_rules('member_title', 'اللقب', 'required');
         $this->form_validation->set_rules('member_fname', 'الأسم الاول', 'required');
         $this->form_validation->set_rules('member_lname', 'الأسم الاخير', 'required');
+        $this->form_validation->set_rules('member_dob', 'تاريخ الميلاد', 'required');
         $this->form_validation->set_rules('member_password', 'كلمة المرور', 'required|min_length[8]');
         $this->form_validation->set_rules('member_email', 'البريد الإلكترونى', 'required|is_unique[members.member_email]|valid_email');
         $this->form_validation->set_rules('country_uid', 'الدولة', 'required|min_length[1]');
         $this->form_validation->set_rules('city_uid', 'المدينة', 'required|min_length[1]');
+        $this->form_validation->set_rules('member_id_type', 'نوع الهوية', 'required');
+        $this->form_validation->set_rules('member_id_expire', 'تاريخ انتهاء الهوية', 'required');
+        $this->form_validation->set_rules('member_license_expire', 'تاريخ انتهاء الرخصة', 'required');
         $this->form_validation->set_rules('member_mobile', 'رقم الجوال', 'required|numeric|min_length[10]|max_length[11]|is_unique[members.member_mobile]');
 		
 		if ($this->form_validation->run() == FALSE) 
